@@ -1,14 +1,189 @@
 import cv2
 import numpy as np 
 import matplotlib.pyplot as plt  
+import glob
+from fast_poisson import fast_poisson
+from fast_poisson_shawn import poisson_reconstruct
+from mpl_toolkits.mplot3d import Axes3D
+from scipy import signal
+import time
 
+class image_processor:
+    def __init__(self):
+        pass
+    
+    def crop_image(self,img, pad):
+        return img[pad:-pad,pad:-pad]
 
+class calibration:
+    def __init__(self):
+        self.BallRad=6.35/2 #mm
+        self.Pixmm = 0.0806;
+    
+    def mask_marker(self, raw_image):
+        m, n = raw_image.shape[1], raw_image.shape[0]
+        raw_image = cv2.pyrDown(raw_image).astype(np.float32)
+        blur = cv2.GaussianBlur(raw_image, (25, 25), 0)
+        blur2 = cv2.GaussianBlur(raw_image, (5, 5), 0)
+        diff = blur - blur2
+        diff *= 16.0
+        # cv2.imshow('blur2', blur.astype(np.uint8))
+        # cv2.waitKey(1)
 
+        diff[diff < 0.] = 0.
+        diff[diff > 255.] = 255.
 
+        # diff = cv2.GaussianBlur(diff, (5, 5), 0)
+        # cv2.imshow('diff', diff.astype(np.uint8))
+        # cv2.waitKey(1)
+        mask = (diff[:, :, 0] > 25) & (diff[:, :, 2] > 25) & (diff[:, :, 1] >
+                                                              120)
+        # cv2.imshow('mask', mask.astype(np.uint8) * 255)
+        # cv2.waitKey(1)
+        mask = cv2.resize(mask.astype(np.uint8), (m, n))
+#        mask = mask * self.dmask
+#        mask = cv2.dilate(mask, self.kernal4, iterations=1)
 
+        # mask = cv2.erode(mask, self.kernal4, iterations=1)
+        return (1 - mask) * 255
+    
+    def find_dots(self, binary_image):
+        # down_image = cv2.resize(binary_image, None, fx=2, fy=2)
+        params = cv2.SimpleBlobDetector_Params()
+        # Change thresholds
+        params.minThreshold = 1
+        params.maxThreshold = 12
+        params.minDistBetweenBlobs = 9
+        params.filterByArea = True
+        params.minArea = 9
+        params.filterByCircularity = False
+        params.filterByConvexity = False
+        params.filterByInertia = False
+        params.minInertiaRatio = 0.5
+        detector = cv2.SimpleBlobDetector_create(params)
+        keypoints = detector.detect(binary_image.astype(np.uint8))
+        # im_to_show = (np.stack((binary_image,)*3, axis=-1)-100)
+        # for i in range(len(keypoints)):
+        #     cv2.circle(im_to_show, (int(keypoints[i].pt[0]), int(keypoints[i].pt[1])), 5, (0, 100, 100), -1)
 
+        # cv2.imshow('final_image1',im_to_show)
+        # cv2.waitKey(1)
+        return keypoints
+    
+    def make_mask(self,img, keypoints):
+        img = np.zeros_like(img[:,:,0])
+        for i in range(len(keypoints)):
+            cv2.circle(img, (int(keypoints[i].pt[0]), int(keypoints[i].pt[1])), 6, (1), -1)
+
+        return img
+    
+    def contact_detection(self,raw_image, ref, marker_mask):
+        blur = cv2.GaussianBlur(ref.astype(np.float32), (25, 25), 0)
+        diff_img = np.max(np.abs(raw_image.astype(np.float32) - blur),axis = 2)
+        contact_mask = (diff_img> 30).astype(np.uint8)*(1-marker_mask)
+        contours,_ = cv2.findContours(contact_mask,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+        areas = [cv2.contourArea(c) for c in contours]
+        sorted_areas = np.sort(areas)
+        cnt=contours[areas.index(sorted_areas[-1])] #the biggest contour
+        (x,y),radius = cv2.minEnclosingCircle(cnt)
+        center = (int(x),int(y))
+        radius = int(radius)
+        
+        key = -1
+        while key != 27:
+            center = (int(x),int(y))
+            radius = int(radius)
+            im2show = cv2.circle(np.array(raw_image),center,radius,(0,40,0),2)
+            cv2.imshow('contact', im2show.astype(np.uint8))
+            key = cv2.waitKey(0)
+            if key == 119:
+                y -= 1
+            elif key == 115:
+                y += 1
+            elif key == 97:
+                x -= 1
+            elif key == 100:
+                x += 1
+            elif key == 109:
+                radius += 1
+            elif key == 110:
+                radius -= 1
+
+        contact_mask = np.zeros_like(contact_mask)
+        cv2.circle(contact_mask,center,radius,(1),-1)
+        contact_mask = contact_mask * (1-marker_mask)
+        cv2.imshow('contact_mask',contact_mask*255)
+        cv2.waitKey(0)
+        return contact_mask, center, radius
+
+    def get_gradient(self, img, center, radius_p, valid_mask):
+        ball_radius_p = self.BallRad / self.Pixmm
+        x = np.linspace(0, img.shape[0],img.shape[0])
+        y = np.linspace(0, img.shape[1],img.shape[1])
+        xv, yv = np.meshgrid(y, x)
+#        print('img shape', img.shape, xv.shape, yv.shape)
+        xv = xv - center[0]
+        yv = yv - center[1]
+        rv = np.sqrt(xv**2 + yv**2)
+        mask = (rv < radius_p)
+        mask_small = (rv < radius_p-1)
+        gradmag=np.arcsin(rv*mask/ball_radius_p)*mask;
+        graddir=np.arctan2(-yv*mask, -xv*mask)*mask;
+        gradx_img=gradmag*np.cos(graddir);
+        grady_img=gradmag*np.sin(graddir);
+        depth = fast_poisson(gradx_img, grady_img)
+        temp = ((xv*mask)**2 + (yv*mask)**2)*self.Pixmm**2
+        height_map = (np.sqrt(self.BallRad**2-temp)*mask - np.sqrt(self.BallRad**2-(radius_p*self.Pixmm)**2))*mask
+        height_map[np.isnan(height_map)] = 0
+        depth = poisson_reconstruct(grady_img, gradx_img, np.zeros(grady_img.shape))
+        gx_num = signal.convolve2d(height_map, np.array([[0,0,0],[0.5,0,-0.5],[0,0,0]]), boundary='symm', mode='same')*mask_small
+        gy_num = signal.convolve2d(height_map, np.array([[0,0,0],[0.5,0,-0.5],[0,0,0]]).T, boundary='symm', mode='same')*mask_small
+        depth_num = fast_poisson(gx_num, gy_num)
+
+		# x_valid, y_valid  = xv[valid_mask], yv[valid_mask]
+		# r_valid = np.sqrt(x_valid**2 + y_valid**2)
+		# r_valid_mask = r_valid < ball_radius_p
+		# r_valid = (r_valid*r_valid_mask) + (1-r_valid_mask)*(ball_radius_p-0.001) 
+		# gradxseq=np.arcsin(r_valid/ball_radius_p);
+		# gradyseq=np.arctan2(-y_valid, -x_valid);
+      
+        
+        
 
 if __name__=="__main__":
-    ref_img = cv2.imread('./new_data/ref.jpg')
-    cv2.imshow('ref_image', ref_img)
-    cv2.waitKey(0)
+    cali = calibration()
+    imp = image_processor()
+    pad = 20
+    ref_img = cv2.imread('./test_data/ref.jpg')
+    ref_img = imp.crop_image(ref_img, pad)
+
+#    cv2.imshow('ref_image', ref_img)
+#    cv2.waitKey(0)
+    
+    has_marke = True
+    img_list = glob.glob("test_data/sample*.jpg")
+    
+    for name in img_list[0:1]:
+        img = cv2.imread(name)
+        img = imp.crop_image(img, pad)
+        if has_marke: 
+            marker = cali.mask_marker(img)
+            keypoints = cali.find_dots(marker)
+            marker_mask = cali.make_mask(img, keypoints)
+#            im2show = img.copy()
+#            im2show[:,:,1] += marker_mask*40
+#            cv2.imshow('marker_mask', im2show.astype(np.uint8)) 
+#            cv2.waitKey(0)
+        else:
+            marker_mask = np.zeros_like(img)
+        valid_mask, center, radius_p  = cali.contact_detection(img, ref_img, marker_mask)
+        cali.get_gradient(img, center, radius_p, valid_mask)
+#        cv2.imshow('contact_mask', contact_mask)
+#        cv2.waitKey(0)
+
+    
+        
+    
+    
+#%%
+    
