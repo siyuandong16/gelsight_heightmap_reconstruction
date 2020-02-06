@@ -116,8 +116,10 @@ class calibration:
         cv2.waitKey(0)
         return contact_mask, center, radius
 
-    def get_gradient(self, img, center, radius_p, valid_mask):
-        ball_radius_p = self.BallRad / self.Pixmm
+    def get_gradient(self, img, ref, center, radius_p, valid_mask):
+#        ball_radius_p = self.BallRad / self.Pixmm
+        blur = cv2.GaussianBlur(ref.astype(np.float32), (25, 25), 0)
+        diff = img - blur
         x = np.linspace(0, img.shape[0],img.shape[0])
         y = np.linspace(0, img.shape[1],img.shape[1])
         xv, yv = np.meshgrid(y, x)
@@ -127,25 +129,29 @@ class calibration:
         rv = np.sqrt(xv**2 + yv**2)
         mask = (rv < radius_p)
         mask_small = (rv < radius_p-1)
-        gradmag=np.arcsin(rv*mask/ball_radius_p)*mask;
-        graddir=np.arctan2(-yv*mask, -xv*mask)*mask;
-        gradx_img=gradmag*np.cos(graddir);
-        grady_img=gradmag*np.sin(graddir);
-        depth = fast_poisson(gradx_img, grady_img)
+#        gradmag=np.arcsin(rv*mask/ball_radius_p)*mask;
+#        graddir=np.arctan2(-yv*mask, -xv*mask)*mask;
+#        gradx_img=gradmag*np.cos(graddir);
+#        grady_img=gradmag*np.sin(graddir);
+#        depth = fast_poisson(gradx_img, grady_img)
         temp = ((xv*mask)**2 + (yv*mask)**2)*self.Pixmm**2
         height_map = (np.sqrt(self.BallRad**2-temp)*mask - np.sqrt(self.BallRad**2-(radius_p*self.Pixmm)**2))*mask
         height_map[np.isnan(height_map)] = 0
         depth = poisson_reconstruct(grady_img, gradx_img, np.zeros(grady_img.shape))
         gx_num = signal.convolve2d(height_map, np.array([[0,0,0],[0.5,0,-0.5],[0,0,0]]), boundary='symm', mode='same')*mask_small
         gy_num = signal.convolve2d(height_map, np.array([[0,0,0],[0.5,0,-0.5],[0,0,0]]).T, boundary='symm', mode='same')*mask_small
-        depth_num = fast_poisson(gx_num, gy_num)
+#        depth_num = fast_poisson(gx_num, gy_num)
+        
+        gradxseq = gx_num[valid_mask]
+        gradyseq = gx_num[valid_mask]
+ 
+        return 
 
-		# x_valid, y_valid  = xv[valid_mask], yv[valid_mask]
-		# r_valid = np.sqrt(x_valid**2 + y_valid**2)
-		# r_valid_mask = r_valid < ball_radius_p
-		# r_valid = (r_valid*r_valid_mask) + (1-r_valid_mask)*(ball_radius_p-0.001) 
-		# gradxseq=np.arcsin(r_valid/ball_radius_p);
-		# gradyseq=np.arctan2(-y_valid, -x_valid);
+#        plt.figure(0)
+#        plt.imshow(gx_num)
+#        plt.figure(1)
+#        plt.imshow(gy_num)
+#        plt.show()
       
         
         
@@ -173,11 +179,11 @@ if __name__=="__main__":
 #            im2show = img.copy()
 #            im2show[:,:,1] += marker_mask*40
 #            cv2.imshow('marker_mask', im2show.astype(np.uint8)) 
-#            cv2.waitKey(0)
+#            cv2.waitKey(0) 
         else:
             marker_mask = np.zeros_like(img)
         valid_mask, center, radius_p  = cali.contact_detection(img, ref_img, marker_mask)
-        cali.get_gradient(img, center, radius_p, valid_mask)
+        cali.get_gradient(img, ref_img, center, radius_p, valid_mask)
 #        cv2.imshow('contact_mask', contact_mask)
 #        cv2.waitKey(0)
 
