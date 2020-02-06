@@ -4,6 +4,7 @@ clear;clc; close all;
 
 w1 = 0.0001;
 w2 = 1;
+beta = 10;
 
 %% Generate data
 
@@ -32,7 +33,6 @@ ctrue = [(umax-umin)/4, 3*(umax-umin)/4;
 % true map from (r, g, b) to (gx, gy)
 Atrue = rand(ng, nrgb, nc);
 
-
 % true cluster assignment 
 err_uv_true = zeros(nc, N);
 for i = 1:nc
@@ -40,7 +40,6 @@ for i = 1:nc
 end
 
 [~, cluster_ind_true] = min(err_uv_true);
-
 
 % gradient data
 g = zeros(ng, N);
@@ -52,7 +51,7 @@ end
 % initialize linear model
 A = repmat(eye(ng, nrgb), 1, 1, nc);
 
-%% k means aglorithm
+%% soft k means aglorithm
 
 ct = 1; Nmax = 10;
 c = rand(nuv, nc);
@@ -70,7 +69,7 @@ while ct < Nmax
         err_uv(i, :) = sum(bsxfun(@minus, uv, c(:, i)).^2);
         err_g(i, :) = sum((g - A(:,:,i)*rgb).^2);
     end
-    
+  
     %%%%%%%%%%%%%%%% Plotting %%%%%%%%%%%%%%%%%%%%%%
     figure(1);
     subplot(2, 1, 1);  hold on;
@@ -92,19 +91,29 @@ while ct < Nmax
         norm(A(:, :, 1) - Atrue(:, :, 1), 'fro'), ... 
         norm(A(:, :, 2) - Atrue(:, :, 2), 'fro'))    
     
-    %%%%%%%%%%% Assign pixels to clusters %%%%%%%%%%%%%%
-    [~, cluster_ind] = min(err_tot);
+    %%%%%%%%%%% Soft assign pixels to clusters %%%%%%%%%
+    
+    z = zeros(nc, N); 
+    for i = 1:nc
+        z(i, :) = exp(-beta*err_tot(i, :))./sum(exp(-beta*err_tot));
+    end
     
     %%%%%%%%%%%%%% Compute new new c, A, b %%%%%%%%%%%%%%
     for i = 1:nc
-        ndata = sum(cluster_ind == i);
-        c(:, i) = mean(uv(:, cluster_ind_true == i), 2);
-        A(:, :, i) =  ([rgb(:, cluster_ind_true == i)]'\g(:, cluster_ind_true == i)')';
+        c(:, i) = sum(uv.*z(i, :), 2)/sum(z(i, :));
+        
+%         lhs = zeros(nrgb, ng); 
+%         rhs = zeros(nrgb, nrgb); 
+%         for j = 1:N
+%             lhs = lhs + z(i,j)*rgb(:, j)*g(:, j)'; 
+%             rhs = rhs + z(i,j)*rgb(:, j)*rgb(:, j)'; 
+%             
+%         end
+        A(:, :, i) = lscov(rgb', g', z(i, :))';
+%         A(:, :, i) = (rhs' \ lhs)';
     end
     
-    
-    ct = ct + 1;
-    
+    ct = ct + 1;    
     
 end
 
