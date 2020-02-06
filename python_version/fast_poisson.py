@@ -8,7 +8,7 @@ Created on Thu Oct  4 19:11:16 2018
 import numpy as np
 from scipy.fftpack import dst
 from scipy.fftpack import idst
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 def fast_poisson(gx,gy):
     
