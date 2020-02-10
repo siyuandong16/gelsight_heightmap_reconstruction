@@ -1,18 +1,21 @@
 clear; clc; close all;
 
-beta = 0.001; 
-calib = load('data3_calib_soft.mat');
-datadir = './data_test_2/';
 
+datadir = './data_test_2/'; % test date set
+
+calib = load('data3_calib_soft_02-10-20_14:04:08.mat'); % load training data
+beta = calib.hp.beta;
 
 u = readNPY([datadir 'x.npy']);
 v = readNPY([datadir 'y.npy']);
-uv = double([u(:)'; v(:)']);
+uv = (double([u(:)'; v(:)']) - calib.nrmlz.uv.min_val) ...
+    ./calib.nrmlz.uv.range;
 
 r = readNPY([datadir 'r.npy']);
 g = readNPY([datadir 'g.npy']);
 b = readNPY([datadir 'b.npy']);
-rgb = double([r(:)'; g(:)'; b(:)']);
+rgb = (double([r(:)'; g(:)'; b(:)']) - calib.nrmlz.rgb.min_val) ...
+    ./calib.nrmlz.rgb.range;
 
 [~, nc] = size(calib.c);
 [~, N] = size(uv); 
@@ -20,12 +23,9 @@ rgb = double([r(:)'; g(:)'; b(:)']);
 
 %%%%%%%%%%%%%%%%% Compute Error %%%%%%%%%%%%%%%%%%%%
 err_uv = zeros(nc, N);
-% err_g = zeros(nc, N);
 
 for i = 1:nc
-    %         cluster_mask = cluster_ind == i;
     err_uv(i, :) = sum(bsxfun(@minus, uv, calib.c(:, i)).^2);
-%     err_g(i, :) = sum((g - calib.A(:,:,i)*rgb).^2);
 end
 
 % soft assign cluster
@@ -46,12 +46,17 @@ ghat_img(:, :, 2) = reshape(ghat(2, :), size(u));
 
 figure(1); clf; hold on;
 subplot(1,2,1);
-imshow(ghat_img(:, :, 1) - min(ghat(1, :)))
-subplot(1,2,2);
-imshow(ghat_img(:, :, 2) - min(ghat(2, :)))
+imshow(ghat_img(:, :, 1) - min(ghat(1, :)));
+title("G_y")
+subplot(1,2,2); hold on;
+imshow(ghat_img(:, :, 2) - min(ghat(2, :)));
+title("G_x")
 
 depth_img = fast_poisson2(ghat_img(:, :, 2),ghat_img(:, :, 1));
 
-figure(2); hold on;
+figure(2); 
+subplot(1,2,1); hold on; view(90,0)
 mesh(depth_img);
-axis('equal'); 
+zlabel('Depth'); ylabel('Y')
+subplot(1,2,2); hold on; view(0,0)
+mesh(depth_img); xlabel('X')
