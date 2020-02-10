@@ -42,6 +42,8 @@ gradxseq=asin(rvalid/BallRad);gradyseq=atan2(-yvalid, -xvalid);
 %% colorvalid
 binm=bins-1;
 sizet=sizex*sizey;sizet2=sizet*2;
+t=mean(f0(:));
+f01=1+((t./f0)-1)*2;
 r1=dI(validid).*f01(validid);g1=dI(validid+sizet).*f01(validid+sizet);b1=dI(validid+sizet2).*f01(validid+sizet2);
 disp("mean");
 disp(min(r1));disp(max(r1));
