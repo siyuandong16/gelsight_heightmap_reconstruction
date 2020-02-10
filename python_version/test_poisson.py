@@ -1,6 +1,8 @@
 import numpy as np 
 #from scipy.io import loadmat
 from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import cm
+from matplotlib.ticker import LinearLocator, FormatStrFormatter
 from fast_poisson import fast_poisson
 import cv2
 import matplotlib.pyplot as plt
@@ -28,7 +30,15 @@ def matching_v2(test_img, ref_blur,cali,table, blur_inverse):
     return grad_img
     
     
-    
+def show_depth(depth):
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    X = np.arange(0, depth.shape[1], 1)
+    Y = np.arange(0, depth.shape[0], 1)
+    X, Y = np.meshgrid(X, Y)
+    ax.plot_surface(X, Y, depth, cmap=cm.jet)
+#    fig.colorbar(surf, shrink=0.5, aspect=5)
+#    plt.show()
 
     
 if __name__ == '__main__': 
@@ -42,15 +52,16 @@ if __name__ == '__main__':
     test_img = cv2.imread('./test_data/sample2_1010.jpg')
 #    ref_img = test_img.copy()
     ref_img = imp.crop_image(ref_img, pad)
-    ref_blur = cv2.GaussianBlur(ref_img.astype(np.float32), (49, 49), 49)
+    ref_blur = cv2.GaussianBlur(ref_img.astype(np.float32), (25, 25), 0)
     blur_inverse = 1+((np.mean(ref_blur)/ref_blur)-1)*2;
     test_img = imp.crop_image(test_img, pad)
     test_img = cv2.GaussianBlur(test_img.astype(np.float32), (3, 3), 0)
-    t1 = time.time()
+#    t1 = time.time()
     grad_img = matching_v2(test_img, ref_blur, cali, table, blur_inverse)
 #    grad_img = matching(test_img, ref_blur, cali, table)
     depth = fast_poisson(grad_img[:,:,0], grad_img[:,:,1])
-    print(time.time()-t1)
+    show_depth(depth)
+#    print(time.time()-t1)
     plt.figure(0)
     plt.imshow(grad_img[:,:,0])
     plt.figure(1)
@@ -60,7 +71,7 @@ if __name__ == '__main__':
     plt.figure(3)
     plt.imshow((ref_blur)/255.)
     plt.figure(4)
-    plt.imshow((test_img-ref_blur)/70.)
+    plt.imshow((ref_img-ref_blur)/70.)
     plt.show()
     
 

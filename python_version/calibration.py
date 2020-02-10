@@ -324,8 +324,9 @@ if __name__=="__main__":
             marker_mask = np.zeros_like(img)
         valid_mask, center, radius_p  = cali.contact_detection(img, ref_img, marker_mask)
         table, table_account = cali.get_gradient_v2(img, ref_img, center, radius_p, valid_mask, table, table_account)
-    np.save('table_2.npy', table)
-    np.save('count_map_2.npy', table_account)
+#    np.save('table_2.npy', table)
+#    np.save('count_map_2.npy', table_account)
+    
 
 #%%
 #def make_kernal(n,k_type):
@@ -387,13 +388,21 @@ if __name__=="__main__":
 #
 #table_smooth[np.isnan(table_smooth)] = 0.
 #%%
+#from mpl_toolkits.mplot3d import Axes3D
 #num = 30
-#plt.figure(0)
-#plt.imshow(table[:,:,num,0])
-#plt.figure(1)
-#plt.imshow(table_smooth[:,:,num,0])
-#plt.figure(2)
-#plt.imshow(mask[:,:,num])
+#fig = plt.figure()
+#ax = fig.gca(projection='3d')
+#X = np.arange(0, 90, 1)
+#Y = np.arange(0, 90, 1)
+#X, Y = np.meshgrid(X, Y)
+#
+#surf = ax.plot_surface(X, Y, table[num,:,:,0])
+##plt.figure(0)
+##plt.imshow(table[:,:,num,0])
+##plt.figure(1)
+##plt.imshow(table_smooth[:,:,num,0])
+##plt.figure(2)
+##plt.imshow(mask[:,:,num])
 #plt.show()
 
 
