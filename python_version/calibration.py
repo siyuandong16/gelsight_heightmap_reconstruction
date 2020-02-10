@@ -83,12 +83,13 @@ class calibration:
     def make_mask(self,img, keypoints):
         img = np.zeros_like(img[:,:,0])
         for i in range(len(keypoints)):
-            cv2.circle(img, (int(keypoints[i].pt[0]), int(keypoints[i].pt[1])), 6, (1), -1)
+            # cv2.circle(img, (int(keypoints[i].pt[0]), int(keypoints[i].pt[1])), 6, (1), -1)
+            cv2.ellipse(img, (int(keypoints[i].pt[0]), int(keypoints[i].pt[1])), (9, 6) ,0 ,0 ,360, (1), -1)
 
         return img
     
     def contact_detection(self,raw_image, ref, marker_mask):
-        blur = cv2.GaussianBlur(ref.astype(np.float32), (25, 25), 0)
+        blur = cv2.GaussianBlur(ref.astype(np.float32), (3, 3), 0)
         diff_img = np.max(np.abs(raw_image.astype(np.float32) - blur),axis = 2)
         contact_mask = (diff_img> 30).astype(np.uint8)*(1-marker_mask)
         contours,_ = cv2.findContours(contact_mask,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
@@ -128,7 +129,7 @@ class calibration:
 
     def get_gradient(self, img, ref, center, radius_p, valid_mask, table, table_account):
         ball_radius_p = self.BallRad / self.Pixmm
-        blur = cv2.GaussianBlur(ref.astype(np.float32), (25, 25), 0)
+        blur = cv2.GaussianBlur(ref.astype(np.float32), (3, 3), 0)
         img_smooth = cv2.GaussianBlur(img.astype(np.float32), (3, 3), 0)
         diff = img_smooth - blur 
 #        diff_valid = np.abs(diff * np.dstack((valid_mask,valid_mask,valid_mask)))
@@ -210,11 +211,13 @@ class calibration:
       
     def get_gradient_v2(self, img, ref, center, radius_p, valid_mask, table, table_account):
         ball_radius_p = self.BallRad / self.Pixmm
-        blur = cv2.GaussianBlur(ref.astype(np.float32), (49, 49), 49)
+        blur = cv2.GaussianBlur(ref.astype(np.float32), (3, 3), 0)
         blur_inverse = 1+((np.mean(blur)/blur)-1)*2;
         img_smooth = cv2.GaussianBlur(img.astype(np.float32), (3, 3), 0)
         diff_temp1 = img_smooth - blur 
         diff_temp2 = diff_temp1 * blur_inverse
+#        print(np.mean(diff_temp2), np.std(diff_temp2))
+#        print(np.min(diff_temp2), np.max(diff_temp2))
         diff_temp3 = np.clip((diff_temp2-self.zeropoint)/self.lookscale,0,0.999)
         diff = (diff_temp3*self.bin_num).astype(int)
 #        diff_valid = np.abs(diff * np.dstack((valid_mask,valid_mask,valid_mask)))
@@ -301,6 +304,11 @@ if __name__=="__main__":
     pad = 20
     ref_img = cv2.imread('./test_data/ref.jpg')
     ref_img = imp.crop_image(ref_img, pad)
+    marker = cali.mask_marker(ref_img)
+    keypoints = cali.find_dots(marker)
+    marker_mask = cali.make_mask(ref_img, keypoints)
+    marker_image = np.dstack((marker_mask,marker_mask,marker_mask))
+    ref_img = cv2.inpaint(ref_img,marker_mask,3,cv2.INPAINT_TELEA)
     table = np.zeros((cali.blue_bin, cali.green_bin, cali.red_bin, 2))
     table_account = np.zeros((cali.blue_bin, cali.green_bin, cali.red_bin))
 #    cv2.imshow('ref_image', ref_img)
