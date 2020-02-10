@@ -47,7 +47,7 @@ while ct < Nmax
     
     for i = 1:nc
         %         cluster_mask = cluster_ind == i;
-        err_uv(i, :) = sum(bsxfun(@minus, uv, c(:, i)).^2);
+%         err_uv(i, :) = sum(bsxfun(@minus, uv, c(:, i)).^2);
         err_g(i, :) = sum((g - A(:,:,i)*rgb).^2);
     end
     

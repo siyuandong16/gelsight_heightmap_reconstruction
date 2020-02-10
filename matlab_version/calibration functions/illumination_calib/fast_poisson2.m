@@ -44,7 +44,7 @@ function [img_direct] = fast_poisson2(gx,gy)
 	%compute Eigen Values
 	[x,y] = meshgrid(1:xdim-2,1:ydim-2); 
 	denom = (2*cos(pi*x/(xdim-1))-2) + (2*cos(pi*y/(ydim-1)) - 2);
-    disp(denom)
+%     disp(denom)
 	%divide
 	f3 = f2sin./denom; 
 	clear f2sin x y
