@@ -296,6 +296,23 @@ class calibration:
 #        plt.figure(1)
 #        plt.imshow(gy_num)
 #        plt.show()   
+    def smooth_table(self, table, count_map):
+        x,y,z = np.meshgrid(np.linspace(0,self.bin_num-1,self.bin_num),np.linspace(0,self.bin_num-1,self.bin_num),np.linspace(0,self.bin_num-1,self.bin_num))
+        unfill_x = x[count_map<1].astype(int)
+        unfill_y = y[count_map<1].astype(int)
+        unfill_z = z[count_map<1].astype(int)
+        fill_x = x[count_map>0].astype(int)
+        fill_y = y[count_map>0].astype(int)
+        fill_z = z[count_map>0].astype(int)
+        fill_gradients = table[fill_x, fill_y, fill_z,:]
+        print(fill_gradients.shape)
+        for i in range(unfill_x.shape[0]):
+            distance = (unfill_x[i] - fill_x)**2 + (unfill_y[i] - fill_y)**2 + (unfill_z[i] - fill_z)**2
+            index = np.argmin(distance)
+            table[unfill_x[i], unfill_y[i], unfill_z[i],:] = fill_gradients[index,:]
+        
+        return table
+        
         
 
 if __name__=="__main__":
@@ -324,18 +341,16 @@ if __name__=="__main__":
             marker = cali.mask_marker(img)
             keypoints = cali.find_dots(marker)
             marker_mask = cali.make_mask(img, keypoints)
-#            im2show = img.copy()
-#            im2show[:,:,1] += marker_mask*40
-#            cv2.imshow('marker_mask', im2show.astype(np.uint8)) 
-#            cv2.waitKey(0) 
         else:
             marker_mask = np.zeros_like(img)
         valid_mask, center, radius_p  = cali.contact_detection(img, ref_img, marker_mask)
         table, table_account = cali.get_gradient_v2(img, ref_img, center, radius_p, valid_mask, table, table_account)
-#    np.save('table_2.npy', table)
-#    np.save('count_map_2.npy', table_account)
+    np.save('table_3.npy', table)
+    np.save('count_map_3.npy', table_account)
     
-
+    table_smooth = cali.smooth_table(table, table_account)
+    np.save('table_3_smooth.npy', table_smooth)
+#    np.save('count_map_3.npy', table_account)
 #%%
 #def make_kernal(n,k_type):
 #    if k_type == 'circle':
@@ -396,22 +411,22 @@ if __name__=="__main__":
 #
 #table_smooth[np.isnan(table_smooth)] = 0.
 #%%
-#from mpl_toolkits.mplot3d import Axes3D
-#num = 30
-#fig = plt.figure()
-#ax = fig.gca(projection='3d')
-#X = np.arange(0, 90, 1)
-#Y = np.arange(0, 90, 1)
-#X, Y = np.meshgrid(X, Y)
-#
-#surf = ax.plot_surface(X, Y, table[num,:,:,0])
-##plt.figure(0)
-##plt.imshow(table[:,:,num,0])
-##plt.figure(1)
-##plt.imshow(table_smooth[:,:,num,0])
-##plt.figure(2)
-##plt.imshow(mask[:,:,num])
-#plt.show()
+from mpl_toolkits.mplot3d import Axes3D
+num = 30
+fig = plt.figure()
+ax = fig.gca(projection='3d')
+X = np.arange(0, 90, 1)
+Y = np.arange(0, 90, 1)
+X, Y = np.meshgrid(X, Y)
+
+surf = ax.plot_surface(X, Y, table_smooth[num,:,:,0])
+#plt.figure(0)
+#plt.imshow(table[:,:,num,0])
+#plt.figure(1)
+#plt.imshow(table_smooth[:,:,num,0])
+#plt.figure(2)
+#plt.imshow(mask[:,:,num])
+plt.show()
 
 
 

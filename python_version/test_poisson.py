@@ -77,8 +77,7 @@ def make_kernal(n,k_type):
 #
     
 if __name__ == '__main__': 
-    table2 = np.load('table_2.npy')
-    table1 = np.load('table.npy')
+    table2 = np.load('table_3_smooth.npy')
     kernel1 = make_kernal(3,'circle')
     kernel2 = make_kernal(25,'circle')
 
@@ -88,7 +87,7 @@ if __name__ == '__main__':
     cali = calibration()
     pad = 20
     ref_img = cv2.imread('./test_data/ref.jpg')
-    test_img = cv2.imread('./test_data/sample2_1380.jpg')
+    test_img = cv2.imread('./test_data/sample2_668.jpg')
 #    ref_img = test_img.copy()
     ref_img = imp.crop_image(ref_img, pad) 
     marker = cali.mask_marker(ref_img)
@@ -116,33 +115,22 @@ if __name__ == '__main__':
     
     
     grad_img2 = matching_v2(test_img, ref_blur, cali, table2, blur_inverse)
-    grad_img1 = matching(test_img, ref_blur, cali, table1)
-    grad_img1[:,:,0] = grad_img1[:,:,0] * contact_mask
-    grad_img1[:,:,1] = grad_img1[:,:,1] * contact_mask
-    grad_img2[:,:,0] = grad_img2[:,:,0] * contact_mask
-    grad_img2[:,:,1] = grad_img2[:,:,1] * contact_mask
+
+    grad_img2[:,:,0] = grad_img2[:,:,0] * (1-marker_mask)
+    grad_img2[:,:,1] = grad_img2[:,:,1] * (1-marker_mask)
     
-    depth1 = fast_poisson(grad_img1[:,:,0], grad_img1[:,:,1])
+#    depth1 = fast_poisson(grad_img1[:,:,0], grad_img1[:,:,1])
     depth2 = fast_poisson(grad_img2[:,:,0], grad_img2[:,:,1])
-    depth1[depth1<0] = 0
+#    depth1[depth1<0] = 0
     depth2[depth2<0] = 0
-    show_depth(depth1,99)
+#    show_depth(depth1,99)
     show_depth(depth2,100)
 #    print(time.time()-t1)
     plt.figure(0)
-    plt.subplot(1, 2, 1)
-    plt.imshow(grad_img1[:,:,0])
-    plt.subplot(1, 2, 2)
     plt.imshow(grad_img2[:,:,0])
     plt.figure(1)
-    plt.subplot(1, 2, 1)
-    plt.imshow(grad_img1[:,:,1])
-    plt.subplot(1, 2, 2)
     plt.imshow(grad_img2[:,:,1])
     plt.figure(2)
-    plt.subplot(1, 2, 1)
-    plt.imshow(depth1)
-    plt.subplot(1, 2, 2)
     plt.imshow(depth2)
 #    plt.figure(3)
 #    plt.imshow((ref_blur)/255.)
@@ -151,6 +139,8 @@ if __name__ == '__main__':
     plt.show()
 #    cv2.imshow('diff',(((test_img-ref_blur)+150)/400*255).astype(np.uint8))
 #    cv2.waitKey(0)
-    
+#%%
+cv2.imshow('test_image', test_img.astype(np.uint8))
+cv2.show()
 
     
