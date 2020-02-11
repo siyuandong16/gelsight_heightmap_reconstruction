@@ -160,8 +160,8 @@ class calibration:
 #        plt.figure(2)
 #        plt.hist(pixels_valid[:,2], bins = 256)
 #        plt.show()
-        x = np.linspace(0, img.shape[0],img.shape[0])
-        y = np.linspace(0, img.shape[1],img.shape[1])
+        x = np.linspace(0, img.shape[0]-1,img.shape[0])
+        y = np.linspace(0, img.shape[1]-1,img.shape[1])
         xv, yv = np.meshgrid(y, x)
 #        print('img shape', img.shape, xv.shape, yv.shape)
         xv = xv - center[0]
@@ -248,8 +248,8 @@ class calibration:
 #        plt.figure(2)
 #        plt.hist(pixels_valid[:,2], bins = 256)
 #        plt.show()
-        x = np.linspace(0, img.shape[0],img.shape[0])
-        y = np.linspace(0, img.shape[1],img.shape[1])
+        x = np.linspace(0, img.shape[0]-1,img.shape[0])
+        y = np.linspace(0, img.shape[1]-1,img.shape[1])
         xv, yv = np.meshgrid(y, x)
 #        print('img shape', img.shape, xv.shape, yv.shape)
         xv = xv - center[0]
