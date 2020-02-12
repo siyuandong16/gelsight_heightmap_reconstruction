@@ -8,9 +8,20 @@ wg = 1;
 %% load data
 
 data = load('data3.mat');
-uv = double([data.data_struct.x'; data.data_struct.y']);
-rgb = [data.data_struct.r'; data.data_struct.g'; data.data_struct.b'];
-g = [data.data_struct.gx'; data.data_struct.gy'];
+% uv = double([data.data_struct.x'; data.data_struct.y']);
+% rgb = [data.data_struct.r'; data.data_struct.g'; data.data_struct.b'];
+% g = [data.data_struct.gx'; data.data_struct.gy'];
+
+x = readNPY('training_data/x.npy');
+y = readNPY('training_data/y.npy');
+r = readNPY('training_data/r.npy');
+g_color = readNPY('training_data/g.npy');
+b = readNPY('training_data/b.npy');
+gx = readNPY('training_data/gx.npy');
+gy = readNPY('training_data/gy.npy');
+uv = double([x';y']);
+rgb = double([r';g_color';b']);
+g = double([gx';gy']);
 
 % data dimensions
 [nuv, N] = size(uv);
@@ -21,11 +32,14 @@ umin = min(uv(1, :)); umax = max(uv(1, :));
 vmin = min(uv(2, :)); vmax = max(uv(2, :));
 
 % initial cluster locations
+c = rand(2, 10); 
+c(1, :) = (umax - umin)*c(1, :) + umin;
+c(2, :) = (vmax - vmin)*c(2, :) + vmin;
 % c = double([0.5*(umin + umax), umin + 0.25*(umax - umin), ...
 %     umin + 0.75*(umax - umin), umin + 0.75*(umax - umin);
 %     0.5*(vmin + vmax),  0.5*(vmin + vmax), ...
 %     vmin + 0.25*(vmax - vmin), vmin + 0.75*(vmax - vmin)]);
-c = [0.5*(umin + umax); 0.5*(vmin + vmax)];
+% c = [0.5*(umin + umax); 0.5*(vmin + vmax)];
 
 % number of clusters
 [~,nc] = size(c);
@@ -35,7 +49,7 @@ A = rand(ng, nrgb, nc);
 
 %% k means aglorithm
 
-ct = 1; Nmax = 10;
+ct = 1; Nmax = 50;
 cmap = jet(Nmax);
 
 while ct < Nmax

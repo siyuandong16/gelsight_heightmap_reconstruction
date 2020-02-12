@@ -1,40 +1,75 @@
 clear; clc; close all;
 
 
-datadir = './data_test_2/'; % test date set
+calib = load('data3_calib_poly_single_02-12-20_13:48:50.mat'); % load training data
 
-calib = load('data3_calib_poly_02-10-20_14:51:14'); % load training data
+%
+u = readNPY('test_image_single/x.npy');
+v = readNPY('test_image_single/y.npy');
 
-r = readNPY([datadir 'r.npy']);
-g = readNPY([datadir 'g.npy']);
-b = readNPY([datadir 'b.npy']);
-rgb = (double([r(:)'; g(:)'; b(:)']) - calib.nrmlz.rgb.min_val) ...
-    ./calib.nrmlz.rgb.range; 
+% rgb
+r = readNPY('test_image_single/r.npy');
+g = readNPY('test_image_single/g.npy');
+b = readNPY('test_image_single/b.npy');
+rgb = double([r(:)'; g(:)'; b(:)']);
+rgb_01 = rgb; %(rgb - calib.nrmlz.rgb.mean_val)./calib.nrmlz.rgb.std_dev;
+
+% mask
+mask = double(1 - readNPY('test_image_single/mask.npy'));
+
+[~, N] = size(rgb_01); 
+
+%%%%%%%%%%%%%%%%% Compute  %%%%%%%%%%%%%%%%%%%%
+r = rgb_01(1, :); g = rgb_01(2, :); b = rgb_01(3, :); 
+xdata = [ones(1,N); r; g; b; r.*g.*b; r.*b.^2; r.*g.^2; b.*r.^2; b.*g.^2; 
+    g.*r.^2; g.*b.^2; r.^3; b.^3; g.^3]; 
+ghat_01 = calib.A*xdata; 
+
+% denormalize
+ghat = ghat_01; %ghat_01.*calib.nrmlz.g.std_dev + calib.nrmlz.g.mean_val;
+
+% true values
+gx = readNPY('gradient_gt_single/gx_t.npy');
+gy = readNPY('gradient_gt_single/gy_t.npy');
 
 
-%%%%%%%%%%%%%%%%% Compute Error %%%%%%%%%%%%%%%%%%%%
-xdata = poly_nd(calib.hp.nfit, rgb(1, :), rgb(2, :), rgb(3, :))';
+mask2 = (u > 143) & (u < 219) & (v > 148) & (v < 208); 
 
-ghat = calib.A*xdata; 
+ghat_img = zeros([size(mask), 2]); 
+ghat_img(:, :, 1) = reshape(ghat(1, :), size(mask)); %.*mask2;
+ghat_img(:, :, 2) = reshape(ghat(2, :), size(mask)); %.*mask2;
 
 
-ghat_img = zeros([size(r), 2]); 
-ghat_img(:, :, 1) = reshape(ghat(1, :), size(r));
-ghat_img(:, :, 2) = reshape(ghat(2, :), size(r));
+%% Plotting
+figure(1); clf;
 
-figure(1); clf; hold on;
-subplot(1,2,1);
-imshow(ghat_img(:, :, 1) - min(ghat(1, :)));
-title("G_y")
-subplot(1,2,2); hold on;
-imshow(ghat_img(:, :, 2) - min(ghat(2, :)));
-title("G_x")
+subplot(2,2,1);
+imshow(ghat_img(:, :, 1), []);
+% title("G_x")
 
-depth_img = fast_poisson2(ghat_img(:, :, 2),ghat_img(:, :, 1));
+subplot(2,2,2);
+imshow(gx, [])
 
-figure(2); 
-subplot(1,2,1); hold on; view(90,0)
+
+subplot(2,2,3);
+imshow(ghat_img(:, :, 2), []);
+% title("G_y")
+
+subplot(2,2,4);
+imshow(gy, [])
+
+figure(2); clf; 
+subplot(1, 2, 1)
+imshow(ghat_img(:, :, 1) - gx, []);
+subplot(1,2,2)
+imshow(ghat_img(:, :, 2) - gy, []);
+
+
+depth_img = fast_poisson2(ghat_img(:, :, 1),ghat_img(:, :, 2));
+figure(3); 
 mesh(depth_img);
-zlabel('Depth'); ylabel('Y')
-subplot(1,2,2); hold on; view(0,0)
-mesh(depth_img); xlabel('X')
+
+
+depth_img_t = fast_poisson2(gx,gy);
+figure(4); 
+mesh(depth_img_t);
