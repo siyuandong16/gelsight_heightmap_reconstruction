@@ -411,22 +411,22 @@ if __name__=="__main__":
 #
 #table_smooth[np.isnan(table_smooth)] = 0.
 #%%
-from mpl_toolkits.mplot3d import Axes3D
-num = 30
-fig = plt.figure()
-ax = fig.gca(projection='3d')
-X = np.arange(0, 90, 1)
-Y = np.arange(0, 90, 1)
-X, Y = np.meshgrid(X, Y)
+    # from mpl_toolkits.mplot3d import Axes3D
+    # num = 30
+    # fig = plt.figure()
+    # ax = fig.gca(projection='3d')
+    # X = np.arange(0, 90, 1)
+    # Y = np.arange(0, 90, 1)
+    # X, Y = np.meshgrid(X, Y)
 
-surf = ax.plot_surface(X, Y, table_smooth[num,:,:,0])
-#plt.figure(0)
-#plt.imshow(table[:,:,num,0])
-#plt.figure(1)
-#plt.imshow(table_smooth[:,:,num,0])
-#plt.figure(2)
-#plt.imshow(mask[:,:,num])
-plt.show()
+    # surf = ax.plot_surface(X, Y, table_smooth[num,:,:,0])
+    # #plt.figure(0)
+    # #plt.imshow(table[:,:,num,0])
+    # #plt.figure(1)
+    # #plt.imshow(table_smooth[:,:,num,0])
+    # #plt.figure(2)
+    # #plt.imshow(mask[:,:,num])
+    # plt.show()
 
 
 
