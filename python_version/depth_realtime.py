@@ -78,7 +78,7 @@ class slip_detection_reaction:
                                                   (3, 3), 0)
                 self.blur_inverse1 = 1 + ((np.mean(self.ref_blur1) /
                                            (self.ref_blur1 + 1)) - 1) * 2
-                self.init_figure()
+                # self.init_figure()
             ######### marker tracking##############
             # self.u_sum1 = np.zeros(len(keypoints))
             # self.v_sum1 = np.zeros(len(keypoints))
