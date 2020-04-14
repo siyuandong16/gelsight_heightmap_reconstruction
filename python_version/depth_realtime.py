@@ -120,6 +120,7 @@ class slip_detection_reaction:
             depth = cv2.applyColorMap((depth * 200).astype(np.uint8),
                                       cv2.COLORMAP_JET)
             cv2.imshow('depth', depth.astype(np.uint8) * 255)
+            cv2.waitKey(1)
             # print(np.max(depth))
             # contact_marker_mask = (depth > 0.1) * marker_mask
             # contact = self.contact_detection(raw_image, self.ref_blur1,
