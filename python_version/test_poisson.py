@@ -77,7 +77,7 @@ def make_kernal(n,k_type):
 #
     
 if __name__ == '__main__': 
-    table2 = np.load('table_3_smooth.npy')
+    table2 = np.load('table_3.npy')
     kernel1 = make_kernal(3,'circle')
     kernel2 = make_kernal(25,'circle')
 
@@ -87,7 +87,7 @@ if __name__ == '__main__':
     cali = calibration()
     pad = 20
     ref_img = cv2.imread('./test_data/ref.jpg')
-    test_img = cv2.imread('./test_data/sample2_668.jpg')
+    test_img = cv2.imread('./test_data/sample_3.jpg')
 #    ref_img = test_img.copy()
     ref_img = imp.crop_image(ref_img, pad) 
     marker = cali.mask_marker(ref_img)
@@ -95,7 +95,7 @@ if __name__ == '__main__':
     marker_mask = cali.make_mask(ref_img, keypoints)
     marker_image = np.dstack((marker_mask,marker_mask,marker_mask))
     ref_img = cv2.inpaint(ref_img,marker_mask,3,cv2.INPAINT_TELEA)
-    ref_blur = cv2.GaussianBlur(ref_img.astype(np.float32), (3, 3), 0)
+    ref_blur = cv2.GaussianBlur(ref_img.astype(np.float32), (3, 3), 0) + 1
 #    ref_blur_small = cv2.pyrDown(ref_blur).astype(np.float32)
     blur_inverse = 1+((np.mean(ref_blur)/ref_blur)-1)*2;
     test_img = imp.crop_image(test_img, pad)
@@ -106,10 +106,10 @@ if __name__ == '__main__':
     contact_mask = contact_detection(test_img, ref_blur,marker_mask, kernel2)
     
     
-    plt.figure(20)
-    plt.imshow(marker_mask)
-    plt.figure(21)
-    plt.imshow(contact_mask)
+    # plt.figure(20)
+    # plt.imshow(marker_mask)
+    # plt.figure(21)
+    # plt.imshow(contact_mask)
 #    plt.show()
     
     
@@ -140,7 +140,7 @@ if __name__ == '__main__':
 #    cv2.imshow('diff',(((test_img-ref_blur)+150)/400*255).astype(np.uint8))
 #    cv2.waitKey(0)
 #%%
-cv2.imshow('test_image', test_img.astype(np.uint8))
-cv2.show()
+# cv2.imshow('test_image', test_img.astype(np.uint8))
+# cv2.waitKey()
 
     

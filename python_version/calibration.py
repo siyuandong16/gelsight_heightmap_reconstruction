@@ -211,8 +211,8 @@ class calibration:
       
     def get_gradient_v2(self, img, ref, center, radius_p, valid_mask, table, table_account):
         ball_radius_p = self.BallRad / self.Pixmm
-        blur = cv2.GaussianBlur(ref.astype(np.float32), (3, 3), 0)
-        blur_inverse = 1+((np.mean(blur)/blur)-1)*2;
+        blur = cv2.GaussianBlur(ref.astype(np.float32), (3, 3), 0) + 1
+        blur_inverse = ((np.mean(blur)/blur)-1)*2;
         img_smooth = cv2.GaussianBlur(img.astype(np.float32), (3, 3), 0)
         diff_temp1 = img_smooth - blur 
         diff_temp2 = diff_temp1 * blur_inverse
@@ -330,7 +330,7 @@ if __name__=="__main__":
     table_account = np.zeros((cali.blue_bin, cali.green_bin, cali.red_bin))
 #    cv2.imshow('ref_image', ref_img)
 #    cv2.waitKey(0)
-    has_marke = True
+    has_marke = False
     img_list = glob.glob("test_data/sample*.jpg")
     
     for name in img_list:
