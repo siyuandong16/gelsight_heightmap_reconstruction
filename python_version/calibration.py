@@ -17,8 +17,8 @@ class image_processor:
 
 class calibration:
     def __init__(self):
-        self.BallRad=6.35/2 #mm
-        self.Pixmm = 0.11875 #0.0806 * 1.5 
+        self.BallRad= 4.76/2 #4.76/2 #mm
+        self.Pixmm = 4.76/80 #4.76/100 #0.0806 * 1.5 mm/pixel
         self.ratio = 1/2.
         self.red_range = [-90, 90]
         self.green_range = [-90, 90] #[-60, 50]
@@ -167,6 +167,7 @@ class calibration:
         xv = xv - center[0]
         yv = yv - center[1]
         rv = np.sqrt(xv**2 + yv**2)
+
         radius_p = min(radius_p, ball_radius_p-1) 
         mask = (rv < radius_p)
         mask_small = (rv < radius_p-1)
@@ -201,18 +202,11 @@ class calibration:
                 table_account[b,g,r] += 1
         return table, table_account
         
-    
-
-#        plt.figure(0) 
-#        plt.imshow(gx_num)
-#        plt.figure(1)
-#        plt.imshow(gy_num)
-#        plt.show()
       
     def get_gradient_v2(self, img, ref, center, radius_p, valid_mask, table, table_account):
         ball_radius_p = self.BallRad / self.Pixmm
         blur = cv2.GaussianBlur(ref.astype(np.float32), (3, 3), 0) + 1
-        blur_inverse = ((np.mean(blur)/blur)-1)*2;
+        blur_inverse = 1+ ((np.mean(blur)/blur)-1)*2;
         img_smooth = cv2.GaussianBlur(img.astype(np.float32), (3, 3), 0)
         diff_temp1 = img_smooth - blur 
         diff_temp2 = diff_temp1 * blur_inverse
@@ -255,6 +249,7 @@ class calibration:
         xv = xv - center[0]
         yv = yv - center[1]
         rv = np.sqrt(xv**2 + yv**2)
+        # print('radius_p', radius_p, ball_radius_p)
         radius_p = min(radius_p, ball_radius_p-1) 
         mask = (rv < radius_p)
         mask_small = (rv < radius_p-1)
@@ -269,9 +264,12 @@ class calibration:
 #        depth = poisson_reconstruct(grady_img, gradx_img, np.zeros(grady_img.shape))
         gx_num = signal.convolve2d(height_map, np.array([[0,0,0],[0.5,0,-0.5],[0,0,0]]), boundary='symm', mode='same')*mask_small
         gy_num = signal.convolve2d(height_map, np.array([[0,0,0],[0.5,0,-0.5],[0,0,0]]).T, boundary='symm', mode='same')*mask_small
-#        depth_num = fast_poisson(gx_num, gy_num)
-#        plt.imshow(height_map)
-#        plt.show()
+        # depth_num = fast_poisson(gx_num, gy_num)
+        # img2show = img.copy().astype(np.float64)
+        # img2show[:,:,1] += depth_num*50
+        # cv2.imshow('depth_img', img2show.astype(np.uint8))
+        # cv2.imshow('valid_mask', valid_mask*255)
+        # cv2.waitKey(0)
         gradxseq = gx_num[valid_mask>0]
         gradyseq = gy_num[valid_mask>0]
         
@@ -291,11 +289,7 @@ class calibration:
         
     
 
-#        plt.figure(0) 
-#        plt.imshow(gx_num)
-#        plt.figure(1)
-#        plt.imshow(gy_num)
-#        plt.show()   
+  
     def smooth_table(self, table, count_map):
         x,y,z = np.meshgrid(np.linspace(0,self.bin_num-1,self.bin_num),np.linspace(0,self.bin_num-1,self.bin_num),np.linspace(0,self.bin_num-1,self.bin_num))
         unfill_x = x[count_map<1].astype(int)
@@ -347,6 +341,7 @@ if __name__=="__main__":
         table, table_account = cali.get_gradient_v2(img, ref_img, center, radius_p, valid_mask, table, table_account)
     np.save('table_3.npy', table)
     np.save('count_map_3.npy', table_account)
+    print('calibration table is generated')
     
     # table_smooth = cali.smooth_table(table, table_account)
     # np.save('table_3_smooth.npy', table_smooth)

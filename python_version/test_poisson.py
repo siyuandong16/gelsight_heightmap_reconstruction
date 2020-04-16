@@ -97,7 +97,7 @@ if __name__ == '__main__':
     ref_img = cv2.inpaint(ref_img,marker_mask,3,cv2.INPAINT_TELEA)
     ref_blur = cv2.GaussianBlur(ref_img.astype(np.float32), (3, 3), 0) + 1
 #    ref_blur_small = cv2.pyrDown(ref_blur).astype(np.float32)
-    blur_inverse = 1+((np.mean(ref_blur)/ref_blur)-1)*2;
+    blur_inverse = 1 + ((np.mean(ref_blur)/ref_blur)-1)*2;
     test_img = imp.crop_image(test_img, pad)
     test_img = cv2.GaussianBlur(test_img.astype(np.float32), (3, 3), 0)
 #    t1 = time.time()
