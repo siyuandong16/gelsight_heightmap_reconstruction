@@ -18,7 +18,7 @@ class image_processor:
 class calibration:
     def __init__(self):
         self.BallRad=6.35/2 #mm
-        self.Pixmm = 0.0806
+        self.Pixmm = 0.11875 #0.0806 * 1.5 
         self.ratio = 1/2.
         self.red_range = [-90, 90]
         self.green_range = [-90, 90] #[-60, 50]
@@ -330,7 +330,7 @@ if __name__=="__main__":
     table_account = np.zeros((cali.blue_bin, cali.green_bin, cali.red_bin))
 #    cv2.imshow('ref_image', ref_img)
 #    cv2.waitKey(0)
-    has_marke = False
+    has_marke = True 
     img_list = glob.glob("test_data/sample*.jpg")
     
     for name in img_list:
@@ -348,8 +348,8 @@ if __name__=="__main__":
     np.save('table_3.npy', table)
     np.save('count_map_3.npy', table_account)
     
-    table_smooth = cali.smooth_table(table, table_account)
-    np.save('table_3_smooth.npy', table_smooth)
+    # table_smooth = cali.smooth_table(table, table_account)
+    # np.save('table_3_smooth.npy', table_smooth)
 #    np.save('count_map_3.npy', table_account)
 #%%
 #def make_kernal(n,k_type):
