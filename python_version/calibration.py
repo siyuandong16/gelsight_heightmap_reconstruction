@@ -18,7 +18,7 @@ class image_processor:
 class calibration:
     def __init__(self):
         self.BallRad= 4.76/2 #4.76/2 #mm
-        self.Pixmm = 4.76/80 #4.76/100 #0.0806 * 1.5 mm/pixel
+        self.Pixmm = 4.76/80/1.5 #4.76/100 #0.0806 * 1.5 mm/pixel
         self.ratio = 1/2.
         self.red_range = [-90, 90]
         self.green_range = [-90, 90] #[-60, 50]

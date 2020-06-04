@@ -33,8 +33,9 @@ def matching_v2(test_img, ref_blur,cali,table, blur_inverse):
 def show_depth(depth, figure_num):
     fig = plt.figure(figure_num)
     ax = fig.gca(projection='3d')
-    X = np.arange(0, depth.shape[1], 1)
-    Y = np.arange(0, depth.shape[0], 1)
+    # ax.set_aspect('equal')
+    X = np.arange(0, depth.shape[1], 1)*4.76/80
+    Y = np.arange(0, depth.shape[0], 1)*4.76/80
     X, Y = np.meshgrid(X, Y)
     ax.plot_surface(X, Y, depth, cmap=cm.jet)
 #    fig.colorbar(surf, shrink=0.5, aspect=5)
@@ -87,7 +88,7 @@ if __name__ == '__main__':
     cali = calibration()
     pad = 20
     ref_img = cv2.imread('./test_data/ref.jpg')
-    test_img = cv2.imread('./test_data/sample_3.jpg')
+    test_img = cv2.imread('./test_data/sample_18.jpg')
 #    ref_img = test_img.copy()
     ref_img = imp.crop_image(ref_img, pad) 
     marker = cali.mask_marker(ref_img)
@@ -122,7 +123,7 @@ if __name__ == '__main__':
 #    depth1 = fast_poisson(grad_img1[:,:,0], grad_img1[:,:,1])
     depth2 = fast_poisson(grad_img2[:,:,0], grad_img2[:,:,1])
 #    depth1[depth1<0] = 0
-    depth2[depth2<0] = 0
+    # depth2[depth2<0] = 0
 #    show_depth(depth1,99)
     show_depth(depth2,100)
 #    print(time.time()-t1)
