@@ -3,7 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt  
 import glob
 from fast_poisson import fast_poisson
-#from fast_poisson_shawn import poisson_reconstruct
 from mpl_toolkits.mplot3d import Axes3D
 from scipy import signal
 from skimage.restoration import inpaint
@@ -18,7 +17,7 @@ class image_processor:
 class calibration:
     def __init__(self):
         self.BallRad= 4.76/2 #4.76/2 #mm
-        self.Pixmm = 4.76/80/1.5 #4.76/100 #0.0806 * 1.5 mm/pixel
+        self.Pixmm =  .10577 #4.76/100 #0.0806 * 1.5 mm/pixel
         self.ratio = 1/2.
         self.red_range = [-90, 90]
         self.green_range = [-90, 90] #[-60, 50]
@@ -291,60 +290,67 @@ class calibration:
 
   
     def smooth_table(self, table, count_map):
-        x,y,z = np.meshgrid(np.linspace(0,self.bin_num-1,self.bin_num),np.linspace(0,self.bin_num-1,self.bin_num),np.linspace(0,self.bin_num-1,self.bin_num))
+        y,x,z = np.meshgrid(np.linspace(0,self.bin_num-1,self.bin_num),\
+        	np.linspace(0,self.bin_num-1,self.bin_num),np.linspace(0,self.bin_num-1,self.bin_num))
+     	
         unfill_x = x[count_map<1].astype(int)
         unfill_y = y[count_map<1].astype(int)
         unfill_z = z[count_map<1].astype(int)
+        # print('unfill number', unfill_x.shape)
         fill_x = x[count_map>0].astype(int)
         fill_y = y[count_map>0].astype(int)
         fill_z = z[count_map>0].astype(int)
+        # print('unfill number', fill_x.shape)
         fill_gradients = table[fill_x, fill_y, fill_z,:]
-        print(fill_gradients.shape)
+        table_new = np.array(table)
         for i in range(unfill_x.shape[0]):
             distance = (unfill_x[i] - fill_x)**2 + (unfill_y[i] - fill_y)**2 + (unfill_z[i] - fill_z)**2
-            index = np.argmin(distance)
-            table[unfill_x[i], unfill_y[i], unfill_z[i],:] = fill_gradients[index,:]
+            if np.min(distance) < 20:
+	            index = np.argmin(distance)
+	           
+	            table_new[unfill_x[i], unfill_y[i], unfill_z[i],:] = fill_gradients[index,:]
         
-        return table
+        return table_new
         
         
 
 if __name__=="__main__":
     cali = calibration()
     imp = image_processor()
-    pad = 20
-    ref_img = cv2.imread('./test_data/ref.jpg')
-    ref_img = imp.crop_image(ref_img, pad)
-    marker = cali.mask_marker(ref_img)
-    keypoints = cali.find_dots(marker)
-    marker_mask = cali.make_mask(ref_img, keypoints)
-    marker_image = np.dstack((marker_mask,marker_mask,marker_mask))
-    ref_img = cv2.inpaint(ref_img,marker_mask,3,cv2.INPAINT_TELEA)
-    table = np.zeros((cali.blue_bin, cali.green_bin, cali.red_bin, 2))
-    table_account = np.zeros((cali.blue_bin, cali.green_bin, cali.red_bin))
-#    cv2.imshow('ref_image', ref_img)
-#    cv2.waitKey(0)
-    has_marke = True 
-    img_list = glob.glob("test_data/sample*.jpg")
+#     pad = 20
+#     ref_img = cv2.imread('./test_data/ref.jpg')
+#     ref_img = imp.crop_image(ref_img, pad)
+#     marker = cali.mask_marker(ref_img)
+#     keypoints = cali.find_dots(marker)
+#     marker_mask = cali.make_mask(ref_img, keypoints)
+#     marker_image = np.dstack((marker_mask,marker_mask,marker_mask))
+#     ref_img = cv2.inpaint(ref_img,marker_mask,3,cv2.INPAINT_TELEA)
+#     table = np.zeros((cali.blue_bin, cali.green_bin, cali.red_bin, 2))
+#     table_account = np.zeros((cali.blue_bin, cali.green_bin, cali.red_bin))
+#    # cv2.imshow('ref_image', ref_img)
+#    # cv2.waitKey(0)
+#     has_marke = True 
+#     img_list = glob.glob("test_data/sample*.jpg")
     
-    for name in img_list:
-#        print(name)
-        img = cv2.imread(name)
-        img = imp.crop_image(img, pad)
-        if has_marke: 
-            marker = cali.mask_marker(img)
-            keypoints = cali.find_dots(marker)
-            marker_mask = cali.make_mask(img, keypoints)
-        else:
-            marker_mask = np.zeros_like(img)
-        valid_mask, center, radius_p  = cali.contact_detection(img, ref_img, marker_mask)
-        table, table_account = cali.get_gradient_v2(img, ref_img, center, radius_p, valid_mask, table, table_account)
-    np.save('table_3.npy', table)
-    np.save('count_map_3.npy', table_account)
+#     for name in img_list:
+# #        print(name)
+#         img = cv2.imread(name)
+#         img = imp.crop_image(img, pad)
+#         if has_marke: 
+#             marker = cali.mask_marker(img)
+#             keypoints = cali.find_dots(marker)
+#             marker_mask = cali.make_mask(img, keypoints)
+#         else:
+#             marker_mask = np.zeros_like(img)
+#         valid_mask, center, radius_p  = cali.contact_detection(img, ref_img, marker_mask)
+#         table, table_account = cali.get_gradient_v2(img, ref_img, center, radius_p, valid_mask, table, table_account)
+#     np.save('table_3.npy', table)
+#     np.save('count_map_3.npy', table_account)
+    # table = np.load('table_3.npy') 
+    # table_account = np.load('count_map_3.npy') 
+    table_smooth = cali.smooth_table(table, table_account)
+    np.save('table_3_smooth.npy', table_smooth)
     print('calibration table is generated')
-    
-    # table_smooth = cali.smooth_table(table, table_account)
-    # np.save('table_3_smooth.npy', table_smooth)
 #    np.save('count_map_3.npy', table_account)
 #%%
 #def make_kernal(n,k_type):

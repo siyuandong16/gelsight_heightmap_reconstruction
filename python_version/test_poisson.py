@@ -1,5 +1,5 @@
 import numpy as np 
-#from scipy.io import loadmat
+from scipy.io import loadmat
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
@@ -26,6 +26,9 @@ def matching_v2(test_img, ref_blur,cali,table, blur_inverse):
     diff_temp2 = diff_temp1 * blur_inverse
     diff_temp3 = np.clip((diff_temp2-cali.zeropoint)/cali.lookscale,0,0.999)
     diff = (diff_temp3*cali.bin_num).astype(int)
+    plt.figure()
+    plt.imshow(diff)
+    plt.show()
     grad_img = table[diff[:,:,0], diff[:,:,1],diff[:,:,2], :]
     return grad_img
     
@@ -78,23 +81,23 @@ def make_kernal(n,k_type):
 #
     
 if __name__ == '__main__': 
-    table2 = np.load('table_3.npy')
+    table2 = np.load('table_3_smooth.npy')
     kernel1 = make_kernal(3,'circle')
     kernel2 = make_kernal(25,'circle')
 
-#    plt.imshow(table[:,:,80,0])
+#    plt.imshC:\Users\siyua\Documents\GitHub\gelsight_heightmap_reconstruction\matlab_version\calibration functionsow(table[:,:,80,0])
 #    plt.show()
     imp = image_processor()
     cali = calibration()
     pad = 20
     ref_img = cv2.imread('./test_data/ref.jpg')
-    test_img = cv2.imread('./test_data/sample_18.jpg')
+    test_img = cv2.imread('./test_data/reconstruct_4.jpg')
 #    ref_img = test_img.copy()
     ref_img = imp.crop_image(ref_img, pad) 
     marker = cali.mask_marker(ref_img)
     keypoints = cali.find_dots(marker) 
     marker_mask = cali.make_mask(ref_img, keypoints)
-    marker_image = np.dstack((marker_mask,marker_mask,marker_mask))
+    marker_image = np.dstack((marker_mask, marker_mask, marker_mask))
     ref_img = cv2.inpaint(ref_img,marker_mask,3,cv2.INPAINT_TELEA)
     ref_blur = cv2.GaussianBlur(ref_img.astype(np.float32), (3, 3), 0) + 1
 #    ref_blur_small = cv2.pyrDown(ref_blur).astype(np.float32)
@@ -105,41 +108,39 @@ if __name__ == '__main__':
     marker_mask = marker_detection(test_img)
     marker_mask = cv2.dilate(marker_mask, kernel1, iterations=1)
     contact_mask = contact_detection(test_img, ref_blur,marker_mask, kernel2)
-    
-    
+
+    # mask_2_show = np.dstack((np.zeros_like(marker_mask), marker_mask, np.zeros_like(marker_mask)))*40 +  test_img.astype(np.uint8)
     # plt.figure(20)
-    # plt.imshow(marker_mask)
+    # plt.imshow(mask_2_show)
     # plt.figure(21)
     # plt.imshow(contact_mask)
 #    plt.show()
-    
-    
     
     grad_img2 = matching_v2(test_img, ref_blur, cali, table2, blur_inverse)
 
     grad_img2[:,:,0] = grad_img2[:,:,0] * (1-marker_mask)
     grad_img2[:,:,1] = grad_img2[:,:,1] * (1-marker_mask)
-    
-#    depth1 = fast_poisson(grad_img1[:,:,0], grad_img1[:,:,1])
+
+#    depthgx = np.array(gx.ImGradX)1 = fast_poisson(grad_img1[:,:,0], grad_img1[:,:,1])
     depth2 = fast_poisson(grad_img2[:,:,0], grad_img2[:,:,1])
-#    depth1[depth1<0] = 0
-    # depth2[depth2<0] = 0
-#    show_depth(depth1,99)
+   # depth1[depth1<0] = 0
+    depth2[depth2<0] = 0
+   # show_depth(depth1,99)
     show_depth(depth2,100)
-#    print(time.time()-t1)
+   # print(time.time()-t1)
     plt.figure(0)
     plt.imshow(grad_img2[:,:,0])
     plt.figure(1)
     plt.imshow(grad_img2[:,:,1])
     plt.figure(2)
     plt.imshow(depth2)
-#    plt.figure(3)
-#    plt.imshow((ref_blur)/255.)
-    plt.figure(5)
-    plt.imshow((test_img-ref_blur)/70)
+   # plt.figure(3)
+   # plt.imshow((ref_blur)/255.)
+    # plt.figure(5)
+    # plt.imshow(cv2.cvtColor((test_img-ref_blur)/70, cv2.COLOR_BGR2RGB))
     plt.show()
-#    cv2.imshow('diff',(((test_img-ref_blur)+150)/400*255).astype(np.uint8))
-#    cv2.waitKey(0)
+   # cv2.imshow('diff',(((test_img-ref_blur)+150)/400*255).astype(np.uint8))
+   # cv2.waitKey(0)
 #%%
 # cv2.imshow('test_image', test_img.astype(np.uint8))
 # cv2.waitKey()

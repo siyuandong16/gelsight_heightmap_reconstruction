@@ -8,15 +8,20 @@
 %
 % Mod by Wenzhen Yuan (yuanwenzhen@gmail.com), Feb 2017
 clear;close all;
-BallRad=6.35/2;% Ball's radius, in mm   
+BallRad=4.76/2;% Ball's radius, in mm   
 border=20;
-BALL_MANUAL=0;      % whether to find the ball manually
+BALL_MANUAL=1;      % whether to find the ball manually
 
 type='new';  % choose whether it's the new sensor or the old one
 name1=[type '_0303'];
 %%
-
-
+filename = [3,6,7,8,9,10,12,13,14,15,16,17,18,19,26,33,34,35,36,37,38,39,40,41,42,43,45,46,47,48];
+ref = imread('C:\Users\siyua\Desktop\CalibrationData60\ref.jpg');
+f0 = double(ref(border+1:end-border,border+1:end-border,:));
+for i = 1:length(filename) 
+    img(:,:,:,i) = imread(['C:\Users\siyua\Desktop\CalibrationData60\sample_' num2str(filename(i)) '.jpg']);
+end 
+imshow(int(f0),[]);
 %% generate lookup table 
 READ_RADIUS=0;
 
@@ -24,7 +29,7 @@ bins=80;
 gradmag=[];gradir=[];countmap=[];
 if strcmp(type,'new')
     %load('evaluation_data_new_sensor_0303.mat');
-    Pixmm=0.0324;
+    Pixmm=0.106;
     zeropoint=-90;
     lookscale=180;
 elseif strcmp(type,'old')
@@ -39,7 +44,7 @@ for Frn=1:size(img,4)
     frame = img(:,:,:,Frn);
     display(['Calibration on Frame' num2str(Frn)]);
     frame_=frame(border+1:end-border,border+1:end-border,:);
-    I=double(frame_)-f0;
+    I=double(frame_)-double(f0);
     
     dI=(min(I,[],3)-max(I,[],3))/2;
     if ~READ_RADIUS
