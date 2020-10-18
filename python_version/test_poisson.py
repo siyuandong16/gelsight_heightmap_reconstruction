@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 #from fast_poisson import poisson_reconstruct.
 from calibration import image_processor, calibration
 import time
+import pdb 
 
 def matching(test_img, ref_blur,cali,table):
     diff = test_img - ref_blur
@@ -24,11 +25,24 @@ def matching_v2(test_img, ref_blur,cali,table, blur_inverse):
     
     diff_temp1 = test_img - ref_blur
     diff_temp2 = diff_temp1 * blur_inverse
-    diff_temp3 = np.clip((diff_temp2-cali.zeropoint)/cali.lookscale,0,0.999)
+    diff_temp2[:,:,0] = (diff_temp2[:,:,0] - cali.zeropoint[0])/cali.lookscale[0]
+    diff_temp2[:,:,1] = (diff_temp2[:,:,1] - cali.zeropoint[1])/cali.lookscale[1]
+    diff_temp2[:,:,2] = (diff_temp2[:,:,2] - cali.zeropoint[2])/cali.lookscale[2]
+    diff_temp3 = np.clip(diff_temp2,0,0.999)
     diff = (diff_temp3*cali.bin_num).astype(int)
-    plt.figure()
-    plt.imshow(diff)
-    plt.show()
+
+    # pdb.set_trace()
+    # _ = plt.hist(np.ndarray.flatten(r), bins='auto')
+    # plt.show()
+    # plt.figure()
+    # plt.imshow((diff_temp1-np.min(diff_temp1)).astype(np.uint8))
+    # plt.figure(0)
+    # plt.imshow(ref_blur.astype(np.uint8))
+    # plt.figure(1)
+    # plt.imshow(test_img.astype(np.uint8))
+    # plt.figure(2)
+    # plt.imshow(((diff_temp2 - np.min(diff_temp2))/100).astype(np.uint8))
+    # plt.show()
     grad_img = table[diff[:,:,0], diff[:,:,1],diff[:,:,2], :]
     return grad_img
     
@@ -65,8 +79,12 @@ def marker_detection(raw_image_blur):
     # diff = cv2.GaussianBlur(diff, (5, 5), 0)
     # cv2.imshow('diff', diff.astype(np.uint8))
     # cv2.waitKey(1)
-    mask = (diff[:, :, 0] > 25) & (diff[:, :, 2] > 25) & (diff[:, :, 1] >
-                                                          120)
+    # mask = (diff[:, :, 0] > 25) & (diff[:, :, 2] > 25) & (diff[:, :, 1] >
+    #                                                       120)
+    mask_b = diff[:, :, 0] > 150 
+    mask_g = diff[:, :, 1] > 150 
+    mask_r = diff[:, :, 2] > 150 
+    mask = (mask_b*mask_g + mask_b*mask_r + mask_g*mask_r)>0
     # cv2.imshow('mask', mask.astype(np.uint8) * 255)
     # cv2.waitKey(1)
     mask = cv2.resize(mask.astype(np.uint8), (m, n))
@@ -81,17 +99,15 @@ def make_kernal(n,k_type):
 #
     
 if __name__ == '__main__': 
-    table2 = np.load('table_3_smooth.npy')
+    table2 = np.load('table_smooth.npy')
     kernel1 = make_kernal(3,'circle')
     kernel2 = make_kernal(25,'circle')
 
-#    plt.imshC:\Users\siyua\Documents\GitHub\gelsight_heightmap_reconstruction\matlab_version\calibration functionsow(table[:,:,80,0])
-#    plt.show()
     imp = image_processor()
     cali = calibration()
     pad = 20
     ref_img = cv2.imread('./test_data/ref.jpg')
-    test_img = cv2.imread('./test_data/reconstruct_4.jpg')
+    test_img = cv2.imread('./test_data/gelslim1_250.jpg')
 #    ref_img = test_img.copy()
     ref_img = imp.crop_image(ref_img, pad) 
     marker = cali.mask_marker(ref_img)
@@ -100,6 +116,7 @@ if __name__ == '__main__':
     marker_image = np.dstack((marker_mask, marker_mask, marker_mask))
     ref_img = cv2.inpaint(ref_img,marker_mask,3,cv2.INPAINT_TELEA)
     ref_blur = cv2.GaussianBlur(ref_img.astype(np.float32), (3, 3), 0) + 1
+    # pdb.set_trace()
 #    ref_blur_small = cv2.pyrDown(ref_blur).astype(np.float32)
     blur_inverse = 1 + ((np.mean(ref_blur)/ref_blur)-1)*2;
     test_img = imp.crop_image(test_img, pad)

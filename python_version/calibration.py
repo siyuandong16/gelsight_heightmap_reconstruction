@@ -16,8 +16,8 @@ class image_processor:
 
 class calibration:
     def __init__(self):
-        self.BallRad= 4.76/2 #4.76/2 #mm
-        self.Pixmm =  .10577 #4.76/100 #0.0806 * 1.5 mm/pixel
+        self.BallRad= 7.6/2 #4.76/2 #mm
+        self.Pixmm = .10577     #.10577 #4.76/100 #0.0806 * 1.5 mm/pixel
         self.ratio = 1/2.
         self.red_range = [-90, 90]
         self.green_range = [-90, 90] #[-60, 50]
@@ -25,8 +25,8 @@ class calibration:
         self.red_bin = int((self.red_range[1] - self.red_range[0])*self.ratio)
         self.green_bin = int((self.green_range[1] - self.green_range[0])*self.ratio)
         self.blue_bin = int((self.blue_range[1] - self.blue_range[0])*self.ratio)
-        self.zeropoint = -90;
-        self.lookscale = 180;
+        self.zeropoint = [-90, -90, -90];
+        self.lookscale = [180., 180., 180.]
         self.bin_num = 90
     
     def mask_marker(self, raw_image):
@@ -42,11 +42,14 @@ class calibration:
         diff[diff < 0.] = 0.
         diff[diff > 255.] = 255.
 
-        # diff = cv2.GaussianBlur(diff, (5, 5), 0)
-        # cv2.imshow('diff', diff.astype(np.uint8))
-        # cv2.waitKey(1)
-        mask = (diff[:, :, 0] > 25) & (diff[:, :, 2] > 25) & (diff[:, :, 1] >
-                                                              120)
+        diff = cv2.GaussianBlur(diff, (5, 5), 0)
+        cv2.imshow('diff', diff.astype(np.uint8))
+        cv2.waitKey(1)
+
+        mask_b = diff[:, :, 0] > 150 
+        mask_g = diff[:, :, 1] > 150 
+        mask_r = diff[:, :, 2] > 150 
+        mask = (mask_b*mask_g + mask_b*mask_r + mask_g*mask_r)>0
         # cv2.imshow('mask', mask.astype(np.uint8) * 255)
         # cv2.waitKey(1)
         mask = cv2.resize(mask.astype(np.uint8), (m, n))
@@ -83,7 +86,7 @@ class calibration:
         img = np.zeros_like(img[:,:,0])
         for i in range(len(keypoints)):
             # cv2.circle(img, (int(keypoints[i].pt[0]), int(keypoints[i].pt[1])), 6, (1), -1)
-            cv2.ellipse(img, (int(keypoints[i].pt[0]), int(keypoints[i].pt[1])), (9, 6) ,0 ,0 ,360, (1), -1)
+            cv2.ellipse(img, (int(keypoints[i].pt[0]), int(keypoints[i].pt[1])), (9, 7) ,0 ,0 ,360, (1), -1)
 
         return img
     
@@ -211,7 +214,10 @@ class calibration:
         diff_temp2 = diff_temp1 * blur_inverse
 #        print(np.mean(diff_temp2), np.std(diff_temp2))
 #        print(np.min(diff_temp2), np.max(diff_temp2))
-        diff_temp3 = np.clip((diff_temp2-self.zeropoint)/self.lookscale,0,0.999)
+        diff_temp2[:,:,0] = (diff_temp2[:,:,0] - self.zeropoint[0])/self.lookscale[0]
+        diff_temp2[:,:,1] = (diff_temp2[:,:,1] - self.zeropoint[1])/self.lookscale[1]
+        diff_temp2[:,:,2] = (diff_temp2[:,:,2] - self.zeropoint[2])/self.lookscale[2]
+        diff_temp3 = np.clip(diff_temp2,0,0.999)
         diff = (diff_temp3*self.bin_num).astype(int)
 #        diff_valid = np.abs(diff * np.dstack((valid_mask,valid_mask,valid_mask)))
         pixels_valid = diff[valid_mask>0]
@@ -296,11 +302,9 @@ class calibration:
         unfill_x = x[count_map<1].astype(int)
         unfill_y = y[count_map<1].astype(int)
         unfill_z = z[count_map<1].astype(int)
-        # print('unfill number', unfill_x.shape)
         fill_x = x[count_map>0].astype(int)
         fill_y = y[count_map>0].astype(int)
         fill_z = z[count_map>0].astype(int)
-        # print('unfill number', fill_x.shape)
         fill_gradients = table[fill_x, fill_y, fill_z,:]
         table_new = np.array(table)
         for i in range(unfill_x.shape[0]):
@@ -317,39 +321,39 @@ class calibration:
 if __name__=="__main__":
     cali = calibration()
     imp = image_processor()
-#     pad = 20
-#     ref_img = cv2.imread('./test_data/ref.jpg')
-#     ref_img = imp.crop_image(ref_img, pad)
-#     marker = cali.mask_marker(ref_img)
-#     keypoints = cali.find_dots(marker)
-#     marker_mask = cali.make_mask(ref_img, keypoints)
-#     marker_image = np.dstack((marker_mask,marker_mask,marker_mask))
-#     ref_img = cv2.inpaint(ref_img,marker_mask,3,cv2.INPAINT_TELEA)
-#     table = np.zeros((cali.blue_bin, cali.green_bin, cali.red_bin, 2))
-#     table_account = np.zeros((cali.blue_bin, cali.green_bin, cali.red_bin))
-#    # cv2.imshow('ref_image', ref_img)
-#    # cv2.waitKey(0)
-#     has_marke = True 
-#     img_list = glob.glob("test_data/sample*.jpg")
+    pad = 20
+    ref_img = cv2.imread('./test_data/ref.jpg')
+    ref_img = imp.crop_image(ref_img, pad)
+    marker = cali.mask_marker(ref_img)
+    keypoints = cali.find_dots(marker)
+    marker_mask = cali.make_mask(ref_img, keypoints)
+    marker_image = np.dstack((marker_mask,marker_mask,marker_mask))
+    ref_img = cv2.inpaint(ref_img,marker_mask,3,cv2.INPAINT_TELEA)
+    table = np.zeros((cali.blue_bin, cali.green_bin, cali.red_bin, 2))
+    table_account = np.zeros((cali.blue_bin, cali.green_bin, cali.red_bin))
+   # cv2.imshow('ref_image', ref_img)
+   # cv2.waitKey(0)
+    has_marke = True 
+    img_list = glob.glob("test_data/gelslim*.jpg")
     
-#     for name in img_list:
-# #        print(name)
-#         img = cv2.imread(name)
-#         img = imp.crop_image(img, pad)
-#         if has_marke: 
-#             marker = cali.mask_marker(img)
-#             keypoints = cali.find_dots(marker)
-#             marker_mask = cali.make_mask(img, keypoints)
-#         else:
-#             marker_mask = np.zeros_like(img)
-#         valid_mask, center, radius_p  = cali.contact_detection(img, ref_img, marker_mask)
-#         table, table_account = cali.get_gradient_v2(img, ref_img, center, radius_p, valid_mask, table, table_account)
-#     np.save('table_3.npy', table)
-#     np.save('count_map_3.npy', table_account)
-    # table = np.load('table_3.npy') 
-    # table_account = np.load('count_map_3.npy') 
+    for name in img_list:
+#        print(name)
+        img = cv2.imread(name)
+        img = imp.crop_image(img, pad)
+        if has_marke: 
+            marker = cali.mask_marker(img)
+            keypoints = cali.find_dots(marker)
+            marker_mask = cali.make_mask(img, keypoints)
+        else:
+            marker_mask = np.zeros_like(img)
+        valid_mask, center, radius_p  = cali.contact_detection(img, ref_img, marker_mask)
+        table, table_account = cali.get_gradient_v2(img, ref_img, center, radius_p, valid_mask, table, table_account)
+    np.save('table.npy', table)
+    np.save('count_map.npy', table_account)
+    table = np.load('table.npy') 
+    table_account = np.load('count_map.npy') 
     table_smooth = cali.smooth_table(table, table_account)
-    np.save('table_3_smooth.npy', table_smooth)
+    np.save('table_smooth.npy', table_smooth)
     print('calibration table is generated')
 #    np.save('count_map_3.npy', table_account)
 #%%
