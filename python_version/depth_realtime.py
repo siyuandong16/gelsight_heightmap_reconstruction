@@ -21,6 +21,9 @@ class slip_detection_reaction:
         self.img_counter1 = 0
         self.img_counter2 = 0
         self.table = np.load('table_gelsight2.npy')  #change this with your own table
+        self.abe_array = np.load('abe_corr.npz') # change this with your aberration array 
+        self.x_index = self.abe_array['x']
+        self.y_index = self.abe_array['y']
         self.pad = 20
         self.zeropoint = -90
         self.lookscale = 180
@@ -66,6 +69,7 @@ class slip_detection_reaction:
         if self.con_flag1:
             np_arr = np.fromstring(data.data, np.uint8)
             raw_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+            raw_image = raw_image[self.x_index, self.y_index, :]
             ref_image = self.crop_image(raw_image, self.pad)
             marker = self.marker_detection(ref_image.copy())
             keypoints = self.find_dots((1 - marker) * 255)
@@ -73,6 +77,7 @@ class slip_detection_reaction:
                 marker_mask = self.make_mask(ref_image.copy(), keypoints)
                 ref_image = cv2.inpaint(ref_image, marker_mask, 3,
                                         cv2.INPAINT_TELEA)
+                self.red_mask = (ref_image > 12).astype(np.uint8)
                 self.dmask1 = self.defect_mask(ref_image[:, :, 0])
                 self.ref_blur1 = cv2.GaussianBlur(ref_image.astype(np.float32),
                                                   (3, 3), 0)
@@ -104,6 +109,7 @@ class slip_detection_reaction:
 
             np_arr = np.fromstring(data.data, np.uint8)
             raw_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+            raw_image = raw_image[self.x_index, self.y_index, :]
             # cv2.imwrite('./data/' + 'img_' + str(self.img_counter1) + '.jpg',
             #             raw_image)
             # raw_image = cv2.imread('./test_data_2/img_209.jpg')
@@ -114,8 +120,8 @@ class slip_detection_reaction:
             marker_mask = self.marker_detection(raw_image) * self.dmask1
             grad_img2 = self.matching_v2(raw_image, self.ref_blur1,
                                          self.blur_inverse1)
-            depth = fast_poisson(grad_img2[:, :, 0] * (1 - marker_mask),
-                                 grad_img2[:, :, 1] * (1 - marker_mask))
+            depth = fast_poisson(grad_img2[:, :, 0] * (1 - marker_mask) * self.red_mask,
+                                 grad_img2[:, :, 1] * (1 - marker_mask) * self.red_mask)
             depth[depth < 0] = 0
             depth = cv2.applyColorMap((depth * 200).astype(np.uint8),
                                       cv2.COLORMAP_JET)
@@ -177,25 +183,25 @@ class slip_detection_reaction:
         return img[pad:-pad, pad:-pad]
 
     def defect_mask(self, img):
-        pad = 60
+        pad = 20
         var0 = 60  #left up
         var1 = 60  # right up
         var2 = 65  # right down
         var3 = 60  # left down
         im_mask = np.ones((img.shape))
-        triangle0 = np.array([[0, 0], [var0, 0], [0, var0]])
-        triangle1 = np.array([[im_mask.shape[1] - var1, 0],
-                              [im_mask.shape[1], 0], [im_mask.shape[1], var1]])
-        triangle2 = np.array([[im_mask.shape[1] - var2, im_mask.shape[0]], [im_mask.shape[1], im_mask.shape[0]], \
-            [im_mask.shape[1], im_mask.shape[0]-var2]])
-        triangle3 = np.array([[0, im_mask.shape[0]],
-                              [0, im_mask.shape[0] - var3],
-                              [var3, im_mask.shape[0]]])
-        color = [0]  #im_mask
-        cv2.fillConvexPoly(im_mask, triangle0, color)
-        cv2.fillConvexPoly(im_mask, triangle1, color)
-        cv2.fillConvexPoly(im_mask, triangle2, color)
-        cv2.fillConvexPoly(im_mask, triangle3, color)
+        # triangle0 = np.array([[0, 0], [var0, 0], [0, var0]])
+        # triangle1 = np.array([[im_mask.shape[1] - var1, 0],
+        #                       [im_mask.shape[1], 0], [im_mask.shape[1], var1]])
+        # triangle2 = np.array([[im_mask.shape[1] - var2, im_mask.shape[0]], [im_mask.shape[1], im_mask.shape[0]], \
+        #     [im_mask.shape[1], im_mask.shape[0]-var2]])
+        # triangle3 = np.array([[0, im_mask.shape[0]],
+        #                       [0, im_mask.shape[0] - var3],
+        #                       [var3, im_mask.shape[0]]])
+        # color = [0]  #im_mask
+        # cv2.fillConvexPoly(im_mask, triangle0, color)
+        # cv2.fillConvexPoly(im_mask, triangle1, color)
+        # cv2.fillConvexPoly(im_mask, triangle2, color)
+        # cv2.fillConvexPoly(im_mask, triangle3, color)
         im_mask[:pad, :] = 0
         im_mask[-pad:, :] = 0
         im_mask[:, :pad * 2 + 20] = 0

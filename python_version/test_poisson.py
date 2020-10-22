@@ -100,6 +100,8 @@ def make_kernal(n,k_type):
     
 if __name__ == '__main__': 
     table2 = np.load('table_smooth.npy')
+    abe_array = np.load('abe_corr.npz')
+    x_index, y_index = abe_array['x'], abe_array['y']
     kernel1 = make_kernal(3,'circle')
     kernel2 = make_kernal(25,'circle')
 
@@ -107,7 +109,9 @@ if __name__ == '__main__':
     cali = calibration()
     pad = 20
     ref_img = cv2.imread('./test_data/ref.jpg')
+    ref_img = ref_img[x_index, y_index, :]
     test_img = cv2.imread('./test_data/gelslim1_250.jpg')
+    test_img = test_img[x_index, y_index, :]
 #    ref_img = test_img.copy()
     ref_img = imp.crop_image(ref_img, pad) 
     marker = cali.mask_marker(ref_img)
@@ -115,6 +119,7 @@ if __name__ == '__main__':
     marker_mask = cali.make_mask(ref_img, keypoints)
     marker_image = np.dstack((marker_mask, marker_mask, marker_mask))
     ref_img = cv2.inpaint(ref_img,marker_mask,3,cv2.INPAINT_TELEA)
+    red_mask = (ref_img[:,:,2] > 12).astype(np.uint8)
     ref_blur = cv2.GaussianBlur(ref_img.astype(np.float32), (3, 3), 0) + 1
     # pdb.set_trace()
 #    ref_blur_small = cv2.pyrDown(ref_blur).astype(np.float32)
@@ -135,8 +140,8 @@ if __name__ == '__main__':
     
     grad_img2 = matching_v2(test_img, ref_blur, cali, table2, blur_inverse)
 
-    grad_img2[:,:,0] = grad_img2[:,:,0] * (1-marker_mask)
-    grad_img2[:,:,1] = grad_img2[:,:,1] * (1-marker_mask)
+    grad_img2[:,:,0] = grad_img2[:,:,0] * (1-marker_mask) * red_mask
+    grad_img2[:,:,1] = grad_img2[:,:,1] * (1-marker_mask) * red_mask
 
 #    depthgx = np.array(gx.ImGradX)1 = fast_poisson(grad_img1[:,:,0], grad_img1[:,:,1])
     depth2 = fast_poisson(grad_img2[:,:,0], grad_img2[:,:,1])

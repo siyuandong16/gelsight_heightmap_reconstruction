@@ -9,6 +9,7 @@ class imp:
         self.kernel = self.make_kernal(3, 'circle')
         self.marker_dis_thre = 15
         self.position_list = []
+        self.dmask = self.defect_mask(20)
 
     def make_kernal(self, n, type):
         if type is 'circle':
@@ -16,6 +17,14 @@ class imp:
         else:
             kernal = cv2.getStructuringElement(cv2.MORPH_RECT, (n, n))
         return kernal
+
+    def defect_mask(self, pad):
+        mask = np.ones((320, 427))
+        mask[:pad, :] = 0
+        mask[-pad:, :] = 0
+        mask[:, :pad] = 0
+        mask[:, -pad:] = 0
+        return mask
     
     def mask_marker(self, raw_image):
         m, n = raw_image.shape[1], raw_image.shape[0]
@@ -41,7 +50,7 @@ class imp:
         # cv2.imshow('mask', mask.astype(np.uint8) * 255)
         # cv2.waitKey(1)
         mask = cv2.resize(mask.astype(np.uint8), (m, n))
-        mask = cv2.dilate(mask, self.kernel, iterations=1)
+        mask = cv2.dilate(mask, self.kernel, iterations=1) * self.dmask
 
         # mask = cv2.erode(mask, self.kernal4, iterations=1)
         return (1 - mask) * 255
@@ -97,10 +106,8 @@ class imp:
                     for x, y in temp:
                         cv2.ellipse(mask_temp, (int(x), int(y)), (1, 1) ,0 ,0 ,360, (255), -1)
                     cv2.imshow('img_test', mask_temp)
-                    print('Enter the number of misclassified point:')
-                    key = cv2.waitKey(0)
-                    number = int(chr(key))
-                    print(number)
+                    cv2.waitKey(0)
+                    number = input("Enter the number of misclassified point: ")
                     temp_new = []
                     while number > 0:
                         temp_new.append(temp.pop())
@@ -191,18 +198,21 @@ if __name__ == "__main__":
 
     x_mesh, y_mesh = np.meshgrid(range(n), range(m))
     x_index, y_index = imp.interp(corr_array, init_array, x_mesh, y_mesh)
-    np.savez('abb_corr.npz', x = x_index, y = y_index)
+    np.savez('abe_corr.npz', x = x_index, y = y_index)
 
     # load the x_index and y_index if not for calibration
     # Test the new image
     Test = True
     if Test:
-	    im_test = cv2.imread('test_data/ref.jpg')
-	    im_new = im_test[x_index, y_index, :]
+        ab_array = np.load('abe_corr.npz')
+        x_index = ab_array['x']
+        y_index = ab_array['y']
+        im_test = cv2.imread('test_data/ref.jpg')
+        im_new = im_test[x_index, y_index, :]
 
-	    cv2.imshow('new_img', im_new)
-	    cv2.imshow('old_img', im_test)
-	    cv2.waitKey(0)
+        cv2.imshow('new_img', im_new)
+        cv2.imshow('old_img', im_test)
+        cv2.waitKey(0)
 
 
 
