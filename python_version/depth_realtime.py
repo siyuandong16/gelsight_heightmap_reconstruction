@@ -77,7 +77,7 @@ class slip_detection_reaction:
                 marker_mask = self.make_mask(ref_image.copy(), keypoints)
                 ref_image = cv2.inpaint(ref_image, marker_mask, 3,
                                         cv2.INPAINT_TELEA)
-                self.red_mask = (ref_image > 12).astype(np.uint8)
+                self.red_mask = (ref_image[:,:,2] > 12).astype(np.uint8)
                 self.dmask1 = self.defect_mask(ref_image[:, :, 0])
                 self.ref_blur1 = cv2.GaussianBlur(ref_image.astype(np.float32),
                                                   (3, 3), 0)
