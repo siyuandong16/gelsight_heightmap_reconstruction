@@ -7,13 +7,6 @@ from mpl_toolkits.mplot3d import Axes3D
 from scipy import signal
 from skimage.restoration import inpaint
 
-class image_processor:
-    def __init__(self):
-        pass
-    
-    def crop_image(self,img, pad):
-        return img[pad:-pad,pad:-pad]
-
 class calibration:
     def __init__(self):
         self.BallRad= 7.6/2 #4.76/2 #mm
@@ -28,7 +21,14 @@ class calibration:
         self.zeropoint = [-90, -90, -90];
         self.lookscale = [180., 180., 180.]
         self.bin_num = 90
+        self.abe_array = np.load('abe_corr.npz') # change this with your aberration array 
+        self.x_index = self.abe_array['x']
+        self.y_index = self.abe_array['y']
     
+
+    def crop_image(self, img, pad):
+        return img[pad:-pad,pad:-pad]
+
     def mask_marker(self, raw_image):
         m, n = raw_image.shape[1], raw_image.shape[0]
         raw_image = cv2.pyrDown(raw_image).astype(np.float32)
@@ -43,8 +43,8 @@ class calibration:
         diff[diff > 255.] = 255.
 
         diff = cv2.GaussianBlur(diff, (5, 5), 0)
-        cv2.imshow('diff', diff.astype(np.uint8))
-        cv2.waitKey(1)
+        # cv2.imshow('diff', diff.astype(np.uint8))
+        # cv2.waitKey(1)
 
         mask_b = diff[:, :, 0] > 150 
         mask_g = diff[:, :, 1] > 150 
@@ -320,10 +320,10 @@ class calibration:
 
 if __name__=="__main__":
     cali = calibration()
-    imp = image_processor()
     pad = 20
     ref_img = cv2.imread('./test_data/ref.jpg')
-    ref_img = imp.crop_image(ref_img, pad)
+    ref_img = ref_img[cali.x_index, cali.y_index, :]
+    ref_img = cali.crop_image(ref_img, pad)
     marker = cali.mask_marker(ref_img)
     keypoints = cali.find_dots(marker)
     marker_mask = cali.make_mask(ref_img, keypoints)
@@ -334,12 +334,13 @@ if __name__=="__main__":
    # cv2.imshow('ref_image', ref_img)
    # cv2.waitKey(0)
     has_marke = True 
-    img_list = glob.glob("test_data/gelslim*.jpg")
+    img_list = glob.glob("test_data/sample*.jpg")
     
     for name in img_list:
 #        print(name)
         img = cv2.imread(name)
-        img = imp.crop_image(img, pad)
+        img = img[cali.x_index, cali.y_index, :]
+        img = cali.crop_image(img, pad)
         if has_marke: 
             marker = cali.mask_marker(img)
             keypoints = cali.find_dots(marker)
