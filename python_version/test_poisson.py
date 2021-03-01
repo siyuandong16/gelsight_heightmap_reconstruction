@@ -7,7 +7,7 @@ from fast_poisson import fast_poisson
 import cv2
 import matplotlib.pyplot as plt
 #from fast_poisson import poisson_reconstruct.
-from calibration import image_processor, calibration
+from calibration import calibration
 import time
 import pdb 
 
@@ -105,7 +105,6 @@ if __name__ == '__main__':
     kernel1 = make_kernal(3,'circle')
     kernel2 = make_kernal(25,'circle')
 
-    imp = image_processor()
     cali = calibration()
     pad = 20
     ref_img = cv2.imread('./test_data/ref.jpg')
@@ -113,7 +112,7 @@ if __name__ == '__main__':
     test_img = cv2.imread('./test_data/gelslim1_250.jpg')
     test_img = test_img[x_index, y_index, :]
 #    ref_img = test_img.copy()
-    ref_img = imp.crop_image(ref_img, pad) 
+    ref_img = cali.crop_image(ref_img, pad) 
     marker = cali.mask_marker(ref_img)
     keypoints = cali.find_dots(marker) 
     marker_mask = cali.make_mask(ref_img, keypoints)
@@ -124,7 +123,7 @@ if __name__ == '__main__':
     # pdb.set_trace()
 #    ref_blur_small = cv2.pyrDown(ref_blur).astype(np.float32)
     blur_inverse = 1 + ((np.mean(ref_blur)/ref_blur)-1)*2;
-    test_img = imp.crop_image(test_img, pad)
+    test_img = cali.crop_image(test_img, pad)
     test_img = cv2.GaussianBlur(test_img.astype(np.float32), (3, 3), 0)
 #    t1 = time.time()
     marker_mask = marker_detection(test_img)
