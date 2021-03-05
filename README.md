@@ -1,4 +1,4 @@
-# gelsight_heightmap_reconstruction
+# Gelsight heightmap reconstruction
  python version:
  
  1.put the calibration images to the test_data folder. Change the reference image to 'ref.jpg'
