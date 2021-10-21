@@ -107,13 +107,14 @@ class imp:
                         cv2.ellipse(mask_temp, (int(x), int(y)), (1, 1) ,0 ,0 ,360, (255), -1)
                     cv2.imshow('img_test', mask_temp)
                     cv2.waitKey(0)
-                    number = input("Enter the number of misclassified point: ")
+                    number = int(input("Enter the number of misclassified point: "))
                     temp_new = []
                     while number > 0:
                         temp_new.append(temp.pop())
                         number -= 1
-                    temp = sorted(temp)
-                    xy_array.append(temp)
+                    if len(temp) > 3: 
+                        temp = sorted(temp)
+                        xy_array.append(temp)
                     temp = []
                     temp_new.reverse()
                     temp += temp_new
